@@ -58,51 +58,6 @@ Antes de configurar o NFSe Manager, certifique-se de ter o seguinte instalado:
 
 1.  **Renomeie `config.model.php`:** Duplique o arquivo `config.model.php` e renomeie-o para `config.php`.
 2.  **Edite `config.php`:** Abra `config.php` e preencha as variáveis de configuração necessárias:
-
-    ```php
-    <?php
-    // config.php
-
-    // Configuração do Banco de Dados
-    define('DB_SERVER', 'SEU_IP_OU_HOSTNAME_DO_SERVIDOR_BD'); // Ex: '192.168.0.76'
-    define('DB_NAME', 'SEU_NOME_DO_BANCO_DE_DADOS');           // Ex: 'SESCNFSE_PRD'
-    define('DB_USER', 'SEU_USUARIO_DO_BD');           // Ex: 'usr_consulta_nfe'
-    define('DB_PASS', 'SUA_SENHA_DO_BD');           // !!! IMPORTANTE: Armazene isso de forma segura em produção
-    define('DB_DSN', "sqlsrv:Server=" . DB_SERVER . ";Database=" . DB_NAME . ";TrustServerCertificate=1");
-
-    // Configuração da API PlugNotas
-    define('PLUGNOTAS_API_URL_NFSE', "[https://api.plugnotas.com.br/nfse](https://api.plugnotas.com.br/nfse)");
-    define('PLUGNOTAS_API_URL_SERIE', "[https://api.plugnotas.com.br/nfse/serie](https://api.plugnotas.com.br/nfse/serie)");
-    define('PLUGNOTAS_API_TOKEN', "SEU_TOKEN_DA_API_PLUGNOTAS"); // !!! IMPORTANTE: Armazene isso de forma segura
-
-    // Arquivos de Log
-    define('LOG_FILE', 'log_envio_nfse.txt');
-    define('ERROR_REPORT_FILE', 'relatorio_erros_nfse.txt');
-
-    // CNPJs Permitidos do Prestador de Serviço
-    $GLOBALS['PRESTADOR_CNPJS_PERMITIDOS'] = [
-        // Liste seus CNPJs permitidos aqui
-        '03621867002449', // SESC GINASTICO
-        // ...
-    ];
-
-    // Códigos de Serviço Permitidos
-    $GLOBALS['SERVICO_CODIGOS_PERMITIDOS'] = [
-        // Liste seus códigos de serviço permitidos aqui
-        '030307','040205', // ...
-    ];
-
-    date_default_timezone_set('America/Sao_Paulo');
-
-    // --- CONFIGURAÇÕES DE DEPURAÇÃO ---
-    ini_set('display_errors', 1);       // Desligar em produção
-    ini_set('display_startup_errors', 1); // Desligar em produção
-    error_reporting(E_ALL);
-    ini_set('log_errors', 1);
-    ini_set('error_log', 'php_errors.log'); // Certifique-se de que este arquivo seja gravável
-    // --- FIM DAS CONFIGURAÇÕES DE DEPURAÇÃO ---
-    ```
-
 3.  **Permissões de Arquivo:** Certifique-se de que seu servidor web tenha permissões de gravação para os arquivos `log_envio_nfse.txt`, `relatorio_erros_nfse.txt` e `php_errors.log` (ou para o diretório onde eles estão). Crie esses arquivos se eles não existirem.
 4.  **Localização dos Arquivos:** Faça o upload de todos os arquivos do projeto (`index.php`, `api.php`, `functions.php`, `config.php`, `css/`, `js/`, `src/`) para a raiz do documento do seu servidor web ou para um subdiretório.
 

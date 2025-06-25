@@ -110,7 +110,7 @@ $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
             </div>
         </div>
 
-        <div class="card shadow-sm rounded-4">
+        <div class="card shadow-sm rounded-4 d-none mb-5" id="resultsCard">
             <div class="card-header bg-light rounded-4">
                 <h3 class="card-title h5 mb-0" id="notesListTitle">Notas Fiscais</h3>
             </div>
@@ -130,8 +130,7 @@ $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
                             </tr>
                         </thead>
                         <tbody id="notesTableBody">
-                            <tr><td colspan="8" class="text-center">Selecione os CNPJs e clique em consultar.</td></tr>
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
                 <p class="text-muted mt-3" id="notesCount">Total de notas: 0</p>

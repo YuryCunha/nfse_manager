@@ -13,9 +13,8 @@ footer {
   position: fixed;
   bottom: 0;
   width: 100%;
-  background-color: #f8f9fa; /* Ou a cor de fundo desejada, para que o conteúdo não apareça por baixo */
-  padding: 1rem 0; /* Ajuste o preenchimento conforme necessário */
-  box-shadow: 0 -2px 5px rgba(0,0,0,.05); /* Opcional: uma sombra para destacá-lo */
+  background-color: #f8f9fa; 
+  box-shadow: 0 -2px 5px rgba(0,0,0,.05); 
   z-index: 1030;
 }
 
@@ -46,7 +45,7 @@ footer {
 
 .description-truncate {
   display: -webkit-box;
-  -webkit-line-clamp: 3; /* Limit to 3 lines */
+  -webkit-line-clamp: 2; /* Limit to 2 lines */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;

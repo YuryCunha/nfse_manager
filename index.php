@@ -3,16 +3,19 @@
 require_once 'config.php';
 require_once 'functions.php';
 
+// Conexão e busca de CNPJs
 $db = getDbConnection();
 $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciador de NFSe - SESC RJ</title>
-    <link href="src/bootstrap/css/bootstrap.min.css" rel="stylesheet" >
+    <link href="src/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/custom.css">
     <style>
         .description-truncate {
@@ -22,36 +25,42 @@ $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* Ajuste para o conteúdo principal não ficar escondido atrás do rodapé fixo */
+        body {
+            padding-bottom: 80px;
+        }
     </style>
 </head>
+
 <body>
     <header class="p-3 mb-3 border-bottom">
         <div class="container">
             <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
                 <a href="" class="d-flex align-items-center mb-2 mb-lg-0 text-dark text-decoration-none">
-                    <img src="https://www.sescrio.org.br/wp-content/themes/theme-default/assets/images/logo.svg" alt="SESC RJ Logo" height="40">
+                    <img src="https://www.sescrio.org.br/wp-content/themes/theme-default/assets/images/logo.svg"
+                        alt="SESC RJ Logo" height="40">
                 </a>
             </div>
         </div>
     </header>
 
     <main class="container py-4">
-
         <div class="card mb-4 shadow-sm rounded-4">
             <div class="card-header bg-primary text-white rounded-4">
                 <h2 class="card-title h5 mb-0">Consultar Notas Fiscais</h2>
             </div>
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label for="startDate" class="form-label">Data Início:</label>
                         <input type="date" class="form-control" id="startDate" value="<?php echo date('Y-m-01'); ?>">
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label for="endDate" class="form-label">Data Fim:</label>
                         <input type="date" class="form-control" id="endDate" value="<?php echo date('Y-m-d'); ?>">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <label for="statusFilter" class="form-label">Status:</label>
                         <select id="statusFilter" class="form-select">
                             <option value="pending">Pendentes</option>
@@ -63,22 +72,31 @@ $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
                 <div class="accordion mt-3" id="inclusionAccordion">
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingInclusion">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInclusion" aria-expanded="true" aria-controls="collapseInclusion">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapseInclusion" aria-expanded="true"
+                                aria-controls="collapseInclusion">
                                 Seleção de CNPJs (<span id="includedCount">0</span> selecionados)
                             </button>
                         </h2>
-                        <div id="collapseInclusion" class="accordion-collapse collapse show" aria-labelledby="headingInclusion">
+                        <div id="collapseInclusion" class="accordion-collapse collapse show"
+                            aria-labelledby="headingInclusion">
                             <div class="accordion-body">
                                 <div class="d-flex justify-content-end mb-2">
-                                    <button class="btn btn-sm btn-outline-primary me-2" id="btnSelectAllCnpjs">Marcar Todos</button>
-                                    <button class="btn btn-sm btn-outline-secondary" id="btnClearAllCnpjs">Limpar Seleção</button>
+                                    <button class="btn btn-sm btn-outline-primary me-2" id="btnSelectAllCnpjs">Marcar
+                                        Todos</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="btnClearAllCnpjs">Limpar
+                                        Seleção</button>
                                 </div>
-                                <div id="cnpjInclusionList" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; padding: 10px; border-radius: .25rem;">
+                                <div id="cnpjInclusionList"
+                                    style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; padding: 10px; border-radius: .25rem;">
                                     <?php if (!empty($cnpjs_data)): ?>
-                                        <?php foreach ($cnpjs_data as $empresa) : ?>
+                                        <?php foreach ($cnpjs_data as $empresa): ?>
                                             <div class="form-check">
-                                                <input class="form-check-input cnpj-include-checkbox" type="checkbox" value="<?php echo htmlspecialchars($empresa['cpf_cnpj']); ?>" id="include-<?php echo htmlspecialchars($empresa['cpf_cnpj']); ?>">
-                                                <label class="form-check-label" for="include-<?php echo htmlspecialchars($empresa['cpf_cnpj']); ?>">
+                                                <input class="form-check-input cnpj-include-checkbox" type="checkbox"
+                                                    value="<?php echo htmlspecialchars($empresa['cpf_cnpj']); ?>"
+                                                    id="include-<?php echo htmlspecialchars($empresa['cpf_cnpj']); ?>">
+                                                <label class="form-check-label"
+                                                    for="include-<?php echo htmlspecialchars($empresa['cpf_cnpj']); ?>">
                                                     <?php echo htmlspecialchars($empresa['nome_fantasia']); ?>
                                                 </label>
                                             </div>
@@ -91,12 +109,13 @@ $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
                         </div>
                     </div>
                 </div>
-                <div class="row g-3 mt-2">
-                    <div class="col-md-6">
+                <div class="row g-3 mt-3">
+                    <div class="col-md-8">
                         <button type="button" class="btn btn-primary w-100" id="btnConsult">Consultar</button>
                     </div>
-                     <div class="col-md-6">
-                        <button type="button" class="btn btn-warning w-100" id="btnSendAllPending">Enviar Pendentes dos CNPJs Selecionados</button>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-warning w-100" id="btnSendAllPending">Enviar Pendentes dos
+                            CNPJs</button>
                     </div>
                 </div>
 
@@ -110,9 +129,21 @@ $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
             </div>
         </div>
 
-        <div class="card shadow-sm rounded-4 d-none mb-5" id="resultsCard">
+        <div class="card shadow-sm rounded-4 d-none" id="resultsCard">
             <div class="card-header bg-light rounded-4">
-                <h3 class="card-title h5 mb-0" id="notesListTitle">Notas Fiscais</h3>
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <h3 class="card-title h5 mb-0" id="notesListTitle">Notas Fiscais</h3>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control form-control-sm" id="rpsFilter"
+                            placeholder="Filtrar por RPS...">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control form-control-sm" id="serieFilter"
+                            placeholder="Filtrar por Série...">
+                    </div>
+                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -124,13 +155,13 @@ $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
                                 <th>CNPJ Prestador</th>
                                 <th>Data Emissão</th>
                                 <th>Valor Total</th>
-                                <th>Serviço</th>
+                                <th style="width: 25%;">Serviço</th>
                                 <th>Status</th>
-                                <th>Ações</th>
+                                <th style="width: 15%;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="notesTableBody">
-                            </tbody>
+                        </tbody>
                     </table>
                 </div>
                 <p class="text-muted mt-3" id="notesCount">Total de notas: 0</p>
@@ -141,11 +172,22 @@ $cnpjs_data = $db ? getAllowedCnpjs($db) : [];
         </div>
     </main>
 
-    <footer class="pt-3 mt-4">
-        <p class="text-center text-muted">&copy; <?php echo date('Y'); ?> SESC RJ. Todos os direitos reservados.</p>
+    <footer class="py-3 mt-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <p class="mb-0 text-muted">&copy; <?php echo date('Y'); ?> SESC RJ. Todos os direitos reservados.</p>
+            <div class="d-flex gap-2">
+                <a href="debug/check_db.php" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-hdd-stack"></i> Teste de Banco
+                </a>
+                <a href="debug/check_api.php" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-cloud-check"></i> Teste de API
+                </a>
+            </div>
+        </div>
     </footer>
 
-    <script src="src/bootstrap/js/bootstrap.bundle.min.js" ></script>
+    <script src="src/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="js/scripts.js"></script>
 </body>
+
 </html>

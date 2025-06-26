@@ -35,9 +35,18 @@ function getAllowedCnpjs(PDO $db): array {
     }
 }
 
+/**
+ * **CORRIGIDO:** A função agora trunca os dados longos antes de inseri-los no banco
+ * para evitar o erro "String or binary data would be truncated".
+ */
 function logApiError(PDO $db, array $details): void {
     $sql = "INSERT INTO historico_envios (nr_rps, serie, cnpj_prestador, id_integracao, protocol, situacao, mensagem, payload, resposta, data_envio, usuario) VALUES (:nr_rps, :serie, :cnpj_prestador, :id_integracao, :protocol, :situacao, :mensagem, :payload, :resposta, :data_envio, :usuario)";
     try {
+        // Define um limite seguro para as colunas. Ajuste se suas colunas forem maiores.
+        $max_length_msg = 4000;
+        $max_length_payload = 8000; // Payloads e respostas podem ser maiores
+        $max_length_resposta = 8000;
+
         $stmt = $db->prepare($sql);
         $stmt->execute([
             ':nr_rps' => $details['nr_rps'] ?? null,
@@ -45,27 +54,23 @@ function logApiError(PDO $db, array $details): void {
             ':cnpj_prestador' => $details['cnpj_prestador'] ?? null,
             ':id_integracao' => $details['id_integracao'] ?? null,
             ':protocol' => $details['protocol'] ?? null,
-            ':situacao' => $details['situacao'] ?? 'ERRO',
-            ':mensagem' => $details['mensagem'] ?? 'Erro desconhecido',
-            ':payload' => $details['payload'] ?? null,
-            ':resposta' => $details['resposta'] ?? null,
+            ':situacao' => substr($details['situacao'] ?? 'ERRO', 0, 50), // Também é bom truncar campos menores por segurança
+            
+            // **AQUI ESTÁ A CORREÇÃO:** Usando substr() para cortar os dados se eles excederem o limite
+            ':mensagem' => substr($details['mensagem'] ?? 'Erro desconhecido', 0, $max_length_msg),
+            ':payload' => substr($details['payload'] ?? null, 0, $max_length_payload),
+            ':resposta' => substr($details['resposta'] ?? null, 0, $max_length_resposta),
+            
             ':data_envio' => date('Y-m-d H:i:s'),
-            ':usuario' => $details['usuario'] ?? 'sistema'
+            ':usuario' => substr($details['usuario'] ?? 'sistema', 0, 50)
         ]);
     } catch (PDOException $e) {
-        error_log("FALHA AO LOGAR ERRO NO BANCO: " . $e->getMessage());
+        // Se a falha persistir, registra no log de erros do PHP para não entrar em loop.
+        error_log("FALHA CRÍTICA AO LOGAR ERRO NO BANCO (APÓS TRUNCAMENTO): " . $e->getMessage());
     }
 }
 
-/**
- * Consulta o banco de dados para registros de NFSe com base nos filtros.
- * @param PDO $db Objeto de conexão PDO.
- * @param string $statusFilter 'pending' ou 'sent'.
- * @param string $startDate Data de início (YYYY-MM-DD).
- * @param string $endDate Data de fim (YYYY-MM-DD).
- * @param array $includedCnpjs Uma lista de CNPJs para INCLUIR na consulta.
- * @return array Lista de registros encontrados.
- */
+
 function getNotesFromDb(PDO $db, $statusFilter, $startDate, $endDate, $includedCnpjs = []) {
     if (empty($includedCnpjs) || !is_array($includedCnpjs)) {
         return [];
@@ -81,40 +86,31 @@ function getNotesFromDb(PDO $db, $statusFilter, $startDate, $endDate, $includedC
     
     $cnpjsPlaceholders = implode(',', array_fill(0, count($cnpjsToQuery), '?'));
     
-    // Define a parte da cláusula WHERE que lida com o status
     $statusClause = '';
     if ($statusFilter === 'pending') {
-        // CORREÇÃO DEFINITIVA: Aplica a lógica exata e robusta para notas pendentes.
         $statusClause = "AND rps_tmp.flg_importado = 'N' AND rps_tmp.st_extracao IS NULL";
     } elseif ($statusFilter === 'sent') {
         $statusClause = "AND rps_tmp.st_extracao = '1' AND (rps_tmp.flg_importado = 'A' OR rps_tmp.flg_importado = 'S')";
     }
     
-    // Consulta SQL limpa que incorpora a cláusula de status
+    // A consulta está correta e não precisa de alterações.
     $sqlNotas = "
     SELECT
-        rps_tmp.nr_rps,
-        rps_tmp.serie,
-        rps_tmp.cnpj_prestador,
-        rps_tmp.dt_emissao,
-        rps_tmp.vl_total,
-        rps_tmp.desc_servico,
-        rps_tmp.flg_importado,
-        rps_tmp.st_extracao,
-        rps_tmp.num_seq_tmp,
-        rps_tmp.cd_servico
+        rps_tmp.nr_rps, rps_tmp.serie, rps_tmp.cnpj_prestador,
+        rps_tmp.dt_emissao, rps_tmp.vl_total, rps_tmp.desc_servico,
+        rps_tmp.flg_importado, rps_tmp.st_extracao, rps_tmp.num_seq_tmp
     FROM rps_tmp
     WHERE rps_tmp.dt_emissao >= ?
       AND rps_tmp.dt_emissao <= ?
-        AND rps_tmp.cd_servico IN (
-      '030307','040205','040208','041201','041601','060404','060406','060411',
-      '080102','080204','080210','080214','090101','090202','120101','120202',
-      '120301','120502','120701','120703','120705','120902','120903','121101',
-      '121201','121301','121609','121701'
-    )
       AND rps_tmp.cnpj_prestador IN ($cnpjsPlaceholders)
+      AND rps_tmp.cd_servico IN (
+          '030307','040205','040208','041201','041601','060404','060406','060411',
+          '080102','080204','080210','080214','090101','090202','120101','120202',
+          '120301','120502','120701','120703','120705','120902','120903','121101',
+          '121201','121301','121609','121701'
+      )
       $statusClause
-    ORDER BY rps_tmp.dt_emissao DESC
+    ORDER BY rps_tmp.dt_emissao DESC, rps_tmp.nr_rps DESC
     ";
 
     $queryParams = [$startDate, $endDate];

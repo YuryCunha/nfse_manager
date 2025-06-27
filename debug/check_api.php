@@ -5,8 +5,8 @@
 header('Content-Type: text/html; charset=utf-8');
 
 // --- Inclusão dos arquivos de configuração ---
-require_once '../config.php';
-require_once '../functions.php';
+require_once '../Components/Config/config.php';
+require_once '../Components/Config/functions.php';
 
 // --- INÍCIO DO TEMPLATE HTML ---
 ?>
@@ -18,8 +18,8 @@ require_once '../functions.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diagnóstico da API PlugNotas</title>
     <link href="../src/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="../css/custom.css">
+    <link rel="stylesheet" href="../src/bootstrap/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../src/css/custom.css">
     <style>
         .card-header .bi {
             font-size: 1.5rem;
@@ -47,8 +47,7 @@ require_once '../functions.php';
         <div class="container">
             <div class="d-flex flex-wrap align-items-center justify-content-between">
                 <a href="../index.php" class="d-flex align-items-center mb-2 mb-lg-0 text-dark text-decoration-none">
-                    <img src="https://www.sescrio.org.br/wp-content/themes/theme-default/assets/images/logo.svg"
-                        alt="SESC RJ Logo" height="40">
+                    <img src="../src/img/logo.svg" alt="SESC RJ Logo" height="40">
                 </a>
                 <a href="../index.php" class="btn btn-outline-primary">
                     <i class="bi bi-arrow-left-circle me-2"></i>Voltar ao Início

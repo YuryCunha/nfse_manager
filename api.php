@@ -2,8 +2,8 @@
 // api.php
 
 header('Content-Type: application/json');
-require_once 'functions.php';
-require_once 'config.php';
+require_once 'Components/Config/functions.php';
+require_once 'Components/Config/config.php';
 
 $db = getDbConnection();
 
@@ -54,9 +54,9 @@ switch ($action) {
         }
 
         $serieNota = $note['serie'];
-        $cnaeNota = (string)$note['codCnae'];
-        $ServicoCodigoNota = (string)$note['itemListaServico'];
-        $ServicoCodTribNota = (string)$note['codTribMun'];
+        $cnaeNota = (string) $note['codCnae'];
+        $ServicoCodigoNota = (string) $note['itemListaServico'];
+        $ServicoCodTribNota = (string) $note['codTribMun'];
         $simplesNacionalPrestador = false; // Default value
 
         // Specific logic for '03621867002520' (Serviço)
@@ -81,7 +81,7 @@ switch ($action) {
             $codigoCidadeIBGE = '3301009';
             $descricaoCidade = 'CAMPOS DOS GOYTACAZES';
             $descricaoCidadePrestacao = 'CAMPOS DOS GOYTACAZES';
-            $ServicoCodTribNota = (string)$note['itemListaServico'];
+            $ServicoCodTribNota = (string) $note['itemListaServico'];
         }
 
         $tomadorData = null;
@@ -111,7 +111,7 @@ switch ($action) {
             "idIntegracao" => "NFSE_" . $note['nr_rps'],
             "enviarEmail" => false,
             "rps" => [
-                "numero" => (int)$note['nr_rps'],
+                "numero" => (int) $note['nr_rps'],
                 "serie" => $serieNota,
                 "tipo" => 1,
                 "dataEmissao" => date('c', strtotime($note['dt_emissao']))
@@ -141,26 +141,28 @@ switch ($action) {
                 ]
             ],
             "tomador" => $tomadorData,
-            "servico" => [[
-                "codigo" => $ServicoCodigoNota,
-                "codigoTributacao" => $ServicoCodTribNota,
-                "discriminacao" => $note['desc_servico'],
-                "cnae" => $cnaeNota,
-                "iss" => [
-                    "tipoTributacao" => (int)$note['iss_retido'],
-                    "exigibilidade" => 1,
-                    "aliquota" => (float)$note['aliq_iss'],
-                    "retido" => ((int)$note['iss_retido'] === 1)
-                ],
-                "valor" => [
-                    "servico" => (float)$note['vl_total'],
-                    "baseCalculo" => (float)$note['base_calculo'],
-                    "deducoes" => 0.0,
-                    "descontoCondicionado" => 0.0,
-                    "descontoIncondicionado" => 0.0,
-                    "issRetido" => (float)$note['vl_iss_retido']
+            "servico" => [
+                [
+                    "codigo" => $ServicoCodigoNota,
+                    "codigoTributacao" => $ServicoCodTribNota,
+                    "discriminacao" => $note['desc_servico'],
+                    "cnae" => $cnaeNota,
+                    "iss" => [
+                        "tipoTributacao" => (int) $note['iss_retido'],
+                        "exigibilidade" => 1,
+                        "aliquota" => (float) $note['aliq_iss'],
+                        "retido" => ((int) $note['iss_retido'] === 1)
+                    ],
+                    "valor" => [
+                        "servico" => (float) $note['vl_total'],
+                        "baseCalculo" => (float) $note['base_calculo'],
+                        "deducoes" => 0.0,
+                        "descontoCondicionado" => 0.0,
+                        "descontoIncondicionado" => 0.0,
+                        "issRetido" => (float) $note['vl_iss_retido']
+                    ]
                 ]
-            ]]
+            ]
         ];
         // --- End of NFSe Payload Construction ---
 
@@ -186,8 +188,10 @@ switch ($action) {
 
         if ($httpCode === 200) {
             $resposta = json_decode($responseUtf8, true);
-            if ((isset($resposta['documents'][0]['status']) && $resposta['documents'][0]['status'] === 'success') ||
-                (isset($resposta['message']) && $resposta['message'] === 'Nota(as) em processamento')) {
+            if (
+                (isset($resposta['documents'][0]['status']) && $resposta['documents'][0]['status'] === 'success') ||
+                (isset($resposta['message']) && $resposta['message'] === 'Nota(as) em processamento')
+            ) {
                 $updateStmt->execute([$note['nr_rps'], $note['serie'], $note['cnpj_prestador']]);
                 echo json_encode(['status' => 'success', 'message' => 'Nota enviada e atualizada no DB.']);
             } else {
@@ -208,7 +212,7 @@ switch ($action) {
         } elseif ($httpCode === 400) {
             $resposta = json_decode($responseUtf8, true);
             if (isset($resposta['error']['message']) && strpos($resposta['error']['message'], "Serie inválida ou não cadastrada") !== false) {
-                $cadastro_sucesso = cadastrarSerie($db, $note['cnpj_prestador'], $serieNota, (int)$note['nr_rps']);
+                $cadastro_sucesso = cadastrarSerie($db, $note['cnpj_prestador'], $serieNota, (int) $note['nr_rps']);
                 if ($cadastro_sucesso) {
                     echo json_encode(['status' => 'serie_registered', 'message' => 'Série cadastrada com sucesso. Tente reenviar a nota.']);
                 } else {

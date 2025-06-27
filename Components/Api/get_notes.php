@@ -3,10 +3,11 @@
 
 ini_set('max_execution_time', 180);
 header('Content-Type: application/json');
-require_once 'config.php';
-require_once 'functions.php';
+require_once '../Config/config.php';
+require_once '../Config/functions.php';
 
-function sendJsonError($message, $code = 400) {
+function sendJsonError($message, $code = 400)
+{
     http_response_code($code);
     echo json_encode(['error' => $message]);
     exit;
@@ -15,8 +16,8 @@ function sendJsonError($message, $code = 400) {
 $status = $_GET['status'] ?? null;
 $startDate = $_GET['startDate'] ?? null;
 $endDate = $_GET['endDate'] ?? null;
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 15;
+$page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+$limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 15;
 $includedCnpjs = isset($_GET['included_cnpjs']) ? json_decode($_GET['included_cnpjs'], true) : [];
 
 if (!$status || !$startDate || !$endDate) {

@@ -2,8 +2,8 @@
 // nfse_manager/update_note_status.php
 
 header('Content-Type: application/json');
-require_once 'config.php';
-require_once 'functions.php';
+require_once '../Config/config.php';
+require_once '../Config/functions.php';
 
 // Função para enviar resposta de erro em JSON
 function sendJsonError($message, $code = 400) {

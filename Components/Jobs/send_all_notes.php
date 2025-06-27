@@ -4,10 +4,12 @@
 header('Content-Type: application/json');
 date_default_timezone_set('America/Sao_Paulo');
 
-require_once 'config.php';
-require_once 'functions.php';
+require_once '../Config/config.php';
+require_once '../Config/functions.php';
 
-function sendJsonError($message, $code = 400, $details = []) { /* ... */ }
+function sendJsonError($message, $code = 400, $details = [])
+{ /* ... */
+}
 
 $input = json_decode(file_get_contents('php://input'), true);
 $included_cnpjs = $input['included_cnpjs'] ?? [];
@@ -17,10 +19,12 @@ if (empty($included_cnpjs)) {
 }
 
 $db = getDbConnection();
-if (!$db) { /* ... */ }
+if (!$db) { /* ... */
+}
 
 $token = getApiToken($db);
-if (!$token) { /* ... */ }
+if (!$token) { /* ... */
+}
 
 // **CORRIGIDO: Adicionada a cláusula "AND cd_servico IN (...)" na busca inicial**
 $placeholders = implode(',', array_fill(0, count($included_cnpjs), '?'));

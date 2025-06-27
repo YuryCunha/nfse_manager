@@ -4,8 +4,8 @@
 header('Content-Type: application/json');
 date_default_timezone_set('America/Sao_Paulo');
 
-require_once 'config.php'; 
-require_once 'functions.php'; 
+require_once '../Config/config.php';
+require_once '../Config/functions.php';
 
 function sendJsonError($message, $code = 400, $details = []) {
     http_response_code($code);

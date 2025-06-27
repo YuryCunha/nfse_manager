@@ -1,33 +1,44 @@
-// nfse_manager/js/consulta_api.js
+// src/js/consulta_api.js
 document.addEventListener('DOMContentLoaded', function () {
     // --- Referências aos elementos da interface ---
-    const btnConsultar = document.getElementById('btnConsultarApi');
-    const tableBody = document.getElementById('apiNotesTableBody');
-    const resultsCard = document.getElementById('resultsCardApi');
-    const messageArea = document.getElementById('apiMessageArea');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const loadingText = document.querySelector('#loadingOverlay p');
-    const paginationControls = document.getElementById('paginationControls'); 
-
-    const cnpjFilter = document.getElementById('cnpjFilter');
-    const dataInicialInput = document.getElementById('dataInicial');
-    const dataFinalInput = document.getElementById('dataFinal');
-    const apiSearchFilter = document.getElementById('apiSearchFilter');
-    const apiSituacaoFilter = document.getElementById('apiSituacaoFilter');
+    const ui = {
+        btnConsultar: document.getElementById('btnConsultarApi'),
+        tableBody: document.getElementById('apiNotesTableBody'),
+        resultsCard: document.getElementById('resultsCardApi'),
+        summaryCard: document.getElementById('summaryCard'),
+        messageArea: document.getElementById('apiMessageArea'),
+        loadingOverlay: document.getElementById('loadingOverlay'),
+        loadingText: document.getElementById('loadingText'),
+        paginationControls: document.getElementById('paginationControls'),
+        filterFieldset: document.getElementById('filterFieldset'),
+        cnpjFilter: document.getElementById('cnpjFilter'),
+        dataInicialInput: document.getElementById('dataInicial'),
+        dataFinalInput: document.getElementById('dataFinal'),
+        apiSearchFilter: document.getElementById('apiSearchFilter'),
+        apiSituacaoFilter: document.getElementById('apiSituacaoFilter'),
+        totalNotesCount: document.getElementById('totalNotesCount'),
+        totalNotesValue: document.getElementById('totalNotesValue'),
+    };
 
     // --- Variáveis de estado ---
-    let isFetching = false;
-    let completeNoteList = [];
-    let currentPage = 1;
-    const notesPerPage = 25;
+    let state = {
+        isFetching: false,
+        completeNoteList: [],
+        currentPage: 1,
+        notesPerPage: 25,
+    };
 
     // --- Funções Principais ---
+
+    /**
+     * Orquestra a busca de notas, decidindo entre busca única ou múltipla.
+     */
     const handleFetch = async () => {
-        if (isFetching) return;
-        setLoadingState(true, 'Consultando, por favor aguarde...');
+        if (state.isFetching) return;
+        setLoadingState(true, 'Validando e iniciando consulta...');
         resetState();
 
-        const selectedCnpj = cnpjFilter.value;
+        const selectedCnpj = ui.cnpjFilter.value;
         if (!validateInputs(selectedCnpj)) {
             setLoadingState(false);
             return;
@@ -42,14 +53,17 @@ document.addEventListener('DOMContentLoaded', function () {
         setLoadingState(false);
     };
 
+    /**
+     * Busca todas as páginas de notas para um único CNPJ.
+     */
     const fetchSingleCnpj = async (cpfCnpj) => {
-        const option = cnpjFilter.querySelector(`option[value="${cpfCnpj}"]`);
+        const option = ui.cnpjFilter.querySelector(`option[value="${cpfCnpj}"]`);
         const nomeFantasia = option ? option.dataset.nomeFantasia : cpfCnpj;
         setLoadingState(true, `Buscando notas para ${nomeFantasia}...`);
 
         try {
-            completeNoteList = await fetchAllPagesForCnpj(cpfCnpj, nomeFantasia);
-            showMessage(`Consulta concluída. ${completeNoteList.length} notas encontradas.`, 'success');
+            state.completeNoteList = await fetchAllPagesForCnpj(cpfCnpj, nomeFantasia);
+            showMessage(`Consulta concluída. ${state.completeNoteList.length} notas encontradas.`, 'success');
         } catch (error) {
             showMessage(`Erro ao consultar CNPJ ${cpfCnpj}: ${error.message}`, 'danger');
         } finally {
@@ -57,39 +71,45 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
     
+    /**
+     * Busca todas as notas de todos os CNPJs de forma sequencial, página por página.
+     */
     const fetchAllSequentially = async () => {
-        const cnpjsToFetch = Array.from(cnpjFilter.options)
+        const cnpjsToFetch = Array.from(ui.cnpjFilter.options)
             .map(opt => ({ value: opt.value, name: opt.dataset.nomeFantasia }))
             .filter(opt => opt.value && opt.value !== 'all' && opt.value !== '');
-        
-        let totalFetched = 0;
         
         for (let i = 0; i < cnpjsToFetch.length; i++) {
             const cnpjInfo = cnpjsToFetch[i];
             setLoadingState(true, `Buscando CNPJ ${i + 1} de ${cnpjsToFetch.length}: ${cnpjInfo.name}`);
-            
             try {
                 const notesForCnpj = await fetchAllPagesForCnpj(cnpjInfo.value, cnpjInfo.name);
                 if (notesForCnpj.length > 0) {
-                    completeNoteList.push(...notesForCnpj);
-                    totalFetched += notesForCnpj.length;
+                    state.completeNoteList.push(...notesForCnpj);
                 }
             } catch (error) {
                 console.warn(`Falha ao buscar notas para o CNPJ ${cnpjInfo.value}: ${error.message}`);
             }
         }
         
-        showMessage(`Busca concluída! ${totalFetched} notas encontradas em ${cnpjsToFetch.length} CNPJs.`, 'success');
+        showMessage(`Busca concluída! ${state.completeNoteList.length} notas encontradas em ${cnpjsToFetch.length} CNPJs.`, 'success');
         sortAndRenderPage();
     };
 
+    /**
+     * Loop que busca todas as páginas de um CNPJ usando o hash.
+     */
     const fetchAllPagesForCnpj = async (cpfCnpj, nomeFantasia) => {
         let notesForCnpj = [];
         let currentHash = null;
         let keepFetching = true;
+        let page = 1;
 
         while (keepFetching) {
             try {
+                // Atualiza o status para o usuário, indicando a página
+                setLoadingState(true, `Buscando ${nomeFantasia} (página ${page})...`);
+
                 const data = await makeApiCall(buildApiUrl(cpfCnpj, currentHash));
                 if (data.notas && data.notas.length > 0) {
                     data.notas.forEach(n => {
@@ -101,67 +121,63 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 if (data.hashProximaPagina) {
                     currentHash = data.hashProximaPagina;
+                    page++;
+                    // Pausa de 1 segundo para não sobrecarregar a API
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 } else {
                     keepFetching = false;
                 }
             } catch (error) {
                 console.error(`Erro na paginação para ${cpfCnpj}:`, error);
-                keepFetching = false;
+                keepFetching = false; 
             }
         }
         return notesForCnpj;
     };
 
-
     // --- Funções de Renderização e UI ---
 
     const sortAndRenderPage = () => {
-        completeNoteList.sort((a, b) => {
-            const dateA = new Date(a.emissao.split('/').reverse().join('-') + 'T00:00:00').getTime();
-            const dateB = new Date(b.emissao.split('/').reverse().join('-') + 'T00:00:00').getTime();
-            return dateB - dateA;
-        });
-        currentPage = 1;
+        state.completeNoteList.sort((a, b) => new Date(b.emissao.split('/').reverse().join('-')) - new Date(a.emissao.split('/').reverse().join('-')));
+        state.currentPage = 1;
         renderPage();
     };
 
     const renderPage = () => {
-        const searchValue = apiSearchFilter.value.toLowerCase().trim();
-        const situacaoValue = apiSituacaoFilter.value;
-        let filteredNotes = completeNoteList;
+        const searchValue = ui.apiSearchFilter.value.toLowerCase().trim();
+        const situacaoValue = ui.apiSituacaoFilter.value;
+        let filteredNotes = state.completeNoteList;
 
         if (situacaoValue) {
             filteredNotes = filteredNotes.filter(note => note.situacao === situacaoValue);
         }
         if (searchValue) {
             filteredNotes = filteredNotes.filter(note => 
-                (note.numero && note.numero.toString().toLowerCase().includes(searchValue)) ||
-                (note.prestadorCnpj && note.prestadorCnpj.toLowerCase().includes(searchValue)) ||
-                (note.valorServico && note.valorServico.toString().includes(searchValue)) ||
-                (note.idIntegracao && note.idIntegracao.toLowerCase().includes(searchValue))
+                (note.numero?.toString().toLowerCase().includes(searchValue)) ||
+                (note.prestadorCnpj?.toLowerCase().includes(searchValue)) ||
+                (note.valorServico?.toString().includes(searchValue)) ||
+                (note.idIntegracao?.toLowerCase().includes(searchValue))
             );
         }
 
-        if (completeNoteList.length > 0) {
-            resultsCard.classList.remove('d-none');
-        } else {
-             resultsCard.classList.add('d-none');
-        }
-        
+        ui.resultsCard.classList.toggle('d-none', state.completeNoteList.length === 0);
+        ui.summaryCard.classList.toggle('d-none', state.completeNoteList.length === 0);
+
+        populateSituacaoFilter(state.completeNoteList);
+        updateSummary(filteredNotes);
         updatePagination(filteredNotes);
         renderNotesTable(filteredNotes);
     };
 
     const renderNotesTable = (notes) => {
-        tableBody.innerHTML = '';
-        const startIndex = (currentPage - 1) * notesPerPage;
-        const endIndex = startIndex + notesPerPage;
+        ui.tableBody.innerHTML = '';
+        const startIndex = (state.currentPage - 1) * state.notesPerPage;
+        const endIndex = startIndex + state.notesPerPage;
         const paginatedNotes = notes.slice(startIndex, endIndex);
 
         if (paginatedNotes.length === 0) {
-            const message = completeNoteList.length > 0 ? 'Nenhuma nota encontrada com os filtros aplicados.' : 'Nenhuma nota encontrada para o período selecionado.';
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center">${message}</td></tr>`;
+            const message = state.completeNoteList.length > 0 ? 'Nenhuma nota encontrada com os filtros aplicados.' : 'Nenhuma nota encontrada para o período selecionado.';
+            ui.tableBody.innerHTML = `<tr><td colspan="7" class="text-center">${message}</td></tr>`;
             return;
         }
 
@@ -176,13 +192,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${formatCurrency(nota.valorServico)}</td>
                 <td class="text-center">${getActionButtons(nota)}</td>
             `;
-            tableBody.appendChild(row);
+            ui.tableBody.appendChild(row);
         });
     };
     
     const updatePagination = (filteredNotes) => {
-        const pageCount = Math.ceil(filteredNotes.length / notesPerPage);
-        paginationControls.innerHTML = '';
+        const pageCount = Math.ceil(filteredNotes.length / state.notesPerPage);
+        ui.paginationControls.innerHTML = '';
         if (pageCount <= 1) return;
 
         const createPageLink = (page, text, isDisabled, isActive) => {
@@ -195,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!isDisabled) {
                 a.addEventListener('click', (e) => {
                     e.preventDefault();
-                    currentPage = page;
+                    state.currentPage = page;
                     renderPage();
                 });
             }
@@ -203,15 +219,15 @@ document.addEventListener('DOMContentLoaded', function () {
             return li;
         };
 
-        paginationControls.appendChild(createPageLink(currentPage - 1, 'Anterior', currentPage === 1));
+        paginationControls.appendChild(createPageLink(state.currentPage - 1, 'Anterior', state.currentPage === 1));
         
         let startPage, endPage;
         if (pageCount <= 6) {
             startPage = 1; endPage = pageCount;
         } else {
-            if (currentPage <= 4) { startPage = 1; endPage = 5; } 
-            else if (currentPage + 2 >= pageCount) { startPage = pageCount - 4; endPage = pageCount; } 
-            else { startPage = currentPage - 2; endPage = currentPage + 2; }
+            if (state.currentPage <= 4) { startPage = 1; endPage = 5; } 
+            else if (state.currentPage + 2 >= pageCount) { startPage = pageCount - 4; endPage = pageCount; } 
+            else { startPage = state.currentPage - 2; endPage = state.currentPage + 2; }
         }
         
         if (startPage > 1) {
@@ -220,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         for (let i = startPage; i <= endPage; i++) {
-             paginationControls.appendChild(createPageLink(i, i, false, i === currentPage));
+             paginationControls.appendChild(createPageLink(i, i, false, i === state.currentPage));
         }
 
         if (endPage < pageCount) {
@@ -228,46 +244,58 @@ document.addEventListener('DOMContentLoaded', function () {
             paginationControls.appendChild(createPageLink(pageCount, pageCount));
         }
         
-        paginationControls.appendChild(createPageLink(currentPage + 1, 'Próxima', currentPage === pageCount));
+        paginationControls.appendChild(createPageLink(state.currentPage + 1, 'Próxima', state.currentPage === pageCount));
+    };
+
+    const populateSituacaoFilter = (notes) => {
+        const uniqueSituacoes = [...new Set(notes.map(note => note.situacao))].sort();
+        const currentSelection = ui.apiSituacaoFilter.value;
+        ui.apiSituacaoFilter.innerHTML = '<option value="">Todos os Status</option>';
+        uniqueSituacoes.forEach(s => {
+            const option = new Option(s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(), s);
+            ui.apiSituacaoFilter.add(option);
+        });
+        ui.apiSituacaoFilter.value = currentSelection;
+    };
+
+    const updateSummary = (notes) => {
+        ui.totalNotesCount.textContent = notes.length;
+        const totalValue = notes.reduce((sum, note) => sum + (note.valorServico || 0), 0);
+        ui.totalNotesValue.textContent = formatCurrency(totalValue);
     };
 
     // --- Funções Auxiliares ---
     const resetState = () => {
-        completeNoteList = [];
-        currentPage = 1;
-        apiSearchFilter.value = '';
-        apiSituacaoFilter.value = '';
-        tableBody.innerHTML = '';
-        paginationControls.innerHTML = '';
-        resultsCard.classList.add('d-none');
+        state.completeNoteList = [];
+        state.currentPage = 1;
+        ui.apiSearchFilter.value = '';
+        ui.apiSituacaoFilter.innerHTML = '<option value="">Todos os Status</option>';
+        ui.tableBody.innerHTML = '';
+        ui.paginationControls.innerHTML = '';
+        ui.resultsCard.classList.add('d-none');
+        ui.summaryCard.classList.add('d-none');
     };
 
     const setLoadingState = (loading, text = 'Carregando...') => {
-        isFetching = loading;
-        loadingOverlay.classList.toggle('d-none', !loading);
-        loadingText.textContent = text;
+        state.isFetching = loading;
+        ui.loadingOverlay.classList.toggle('d-none', !loading);
+        ui.filterFieldset.disabled = loading;
+        ui.loadingText.textContent = text;
     };
 
-    // **CORRIGIDO: A função agora recebe rps, serie e cnpj**
     window.requeueNote = async (rps, serie, cnpj) => {
         if (!confirm(`Tem certeza que deseja reenviar a nota (RPS: ${rps}, Série: ${serie}) para a fila de pendentes?`)) return;
-        
         showMessage('Reenfileirando nota...', 'info');
         try {
-            const response = await fetch('requeue_note.php', {
+            const response = await fetch('../Components/API/requeue_note.php', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                // **CORRIGIDO: Enviando os parâmetros corretos para o backend**
                 body: JSON.stringify({ rps, serie, cnpj })
             });
             const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'Erro desconhecido');
-            }
+            if (!response.ok) throw new Error(data.error || 'Erro desconhecido');
             
             showMessage(data.message, 'success');
-            // Remove a nota da lista visual para evitar confusão.
-            // A busca agora é pelo conjunto rps, serie, cnpj.
-            completeNoteList = completeNoteList.filter(note => 
+            state.completeNoteList = state.completeNoteList.filter(note => 
                 !(note.numero == rps && note.serie == serie && note.prestadorCnpj == cnpj)
             );
             sortAndRenderPage();
@@ -276,16 +304,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
     
-    // **CORRIGIDO: Passa os parâmetros corretos para a função requeueNote**
     const getActionButtons = (nota) => {
         if (nota.situacao === 'REJEITADO') {
             return `<button onclick="requeueNote('${nota.numero}', '${nota.serie}', '${nota.prestadorCnpj}')" class="btn btn-sm btn-outline-primary" title="Coloca a nota de volta na fila de pendentes"><i class="bi bi-arrow-clockwise"></i> Reenviar</button>`;
         } else if (nota.situacao === 'PROCESSANDO') {
-            return `<a href="download_file.php?id=${nota.id}&type=rps" target="_blank" class="btn btn-sm btn-info" title="Baixar Recibo Provisório"><i class="bi bi-file-earmark-text"></i> Recibo</a>`;
+            return `<a href="../Components/API/download_file.php?id=${nota.id}&type=rps" target="_blank" class="btn btn-sm btn-info" title="Baixar Recibo Provisório"><i class="bi bi-file-earmark-text"></i> Recibo</a>`;
         } else if (nota.situacao === 'CONCLUIDO' || nota.situacao === 'CANCELADO') {
             return `<div class="btn-group">
-                <a href="download_file.php?id=${nota.id}&type=pdf" target="_blank" class="btn btn-sm btn-danger" title="Baixar PDF"><i class="bi bi-file-earmark-pdf"></i></a>
-                <a href="download_file.php?id=${nota.id}&type=xml" target="_blank" class="btn btn-sm btn-secondary" title="Baixar XML"><i class="bi bi-filetype-xml"></i></a>
+                <a href="../Components/API/download_file.php?id=${nota.id}&type=pdf" target="_blank" class="btn btn-sm btn-danger" title="Baixar PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                <a href="../Components/API/download_file.php?id=${nota.id}&type=xml" target="_blank" class="btn btn-sm btn-secondary" title="Baixar XML"><i class="bi bi-filetype-xml"></i></a>
             </div>`;
         }
         return '';
@@ -302,9 +329,9 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const showMessage = (message, type = 'info', hide = false) => {
-        messageArea.className = `alert alert-${type} mt-3`;
-        messageArea.textContent = message;
-        messageArea.classList.toggle('d-none', hide || !message);
+        ui.messageArea.className = `alert alert-${type} mt-3`;
+        ui.messageArea.textContent = message;
+        ui.messageArea.classList.toggle('d-none', hide || !message);
     };
 
     const formatCurrency = (value) => {
@@ -314,13 +341,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const makeApiCall = async (url) => {
         const response = await fetch(url);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || `Erro HTTP ${response.status}`);
-        return data;
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: { message: `Erro HTTP ${response.status}` } }));
+            throw new Error(errorData.error?.message || `Erro HTTP ${response.status}`);
+        }
+        return response.json();
     };
     
     const buildApiUrl = (cpfCnpj, hash = null) => {
-        let url = `get_api_notes.php?cpfCnpj=${cpfCnpj}&dataInicial=${dataInicialInput.value}&dataFinal=${dataFinalInput.value}`;
+        let url = `../Components/API/get_api_notes.php?cpfCnpj=${cpfCnpj}&dataInicial=${ui.dataInicialInput.value}&dataFinal=${ui.dataFinalInput.value}`;
         if (hash) url += `&hashProximaPagina=${hash}`;
         return url;
     };
@@ -330,8 +359,8 @@ document.addEventListener('DOMContentLoaded', function () {
             showMessage('Por favor, selecione um CNPJ ou a opção "Buscar Todos".', 'warning');
             return false;
         }
-        const date1 = new Date(dataInicialInput.value);
-        const date2 = new Date(dataFinalInput.value);
+        const date1 = new Date(ui.dataInicialInput.value);
+        const date2 = new Date(ui.dataFinalInput.value);
         if (Math.ceil(Math.abs(date2 - date1) / (1000 * 60 * 60 * 24)) > 31) {
             showMessage('O intervalo máximo de consulta é de 31 dias.', 'danger');
             return false;
@@ -340,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     
     // --- Event Listeners ---
-    btnConsultar.addEventListener('click', () => handleFetch());
-    apiSearchFilter.addEventListener('input', () => { currentPage = 1; renderPage(); });
-    apiSituacaoFilter.addEventListener('change', () => { currentPage = 1; renderPage(); });
+    ui.btnConsultar.addEventListener('click', () => handleFetch());
+    ui.apiSearchFilter.addEventListener('input', () => { state.currentPage = 1; renderPage(); });
+    ui.apiSituacaoFilter.addEventListener('change', () => { state.currentPage = 1; renderPage(); });
 });

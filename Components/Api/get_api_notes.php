@@ -3,8 +3,8 @@
 // Proxy seguro para a API da PlugNotas
 
 header('Content-Type: application/json');
-require_once '../../config.php';
-require_once '../../functions.php';
+require_once '../Config/config.php';
+require_once '../Config/functions.php';
 
 // Validação dos parâmetros recebidos
 $cpfCnpj = $_GET['cpfCnpj'] ?? null;
@@ -37,7 +37,7 @@ $queryParams = [
 ];
 
 // Remove parâmetros nulos para não enviar à API
-$queryParams = array_filter($queryParams); 
+$queryParams = array_filter($queryParams);
 
 $apiUrl = PLUGNOTAS_API_URL_NFSE . '/consultar/periodo?' . http_build_query($queryParams);
 

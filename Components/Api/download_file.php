@@ -2,8 +2,8 @@
 // nfse_manager/Components/Consulta/download_file.php
 // Proxy seguro para download de PDF, XML e Recibo Provisório (RPS)
 
-require_once '../../config.php';
-require_once '../../functions.php';
+require_once '../Config/config.php';
+require_once '../Config/functions.php';
 
 // Validação dos parâmetros
 $idNota = $_GET['id'] ?? null;

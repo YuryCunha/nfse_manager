@@ -3,8 +3,8 @@
 // Reenfileira uma nota rejeitada, marcando-a como pendente novamente.
 
 header('Content-Type: application/json');
-require_once '../../config.php';
-require_once '../../functions.php';
+require_once '../Config/config.php';
+require_once '../Config/functions.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 
